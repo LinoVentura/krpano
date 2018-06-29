@@ -1,0 +1,578 @@
+﻿<krpano version="1.19" title="Tour durch die OSMO Hallen am Hafen in Muenster">
+
+	<include url="skin/vtourskin.xml" />
+	<include url="plugins/showtext.xml" />
+	<include url="maps.xml" keep="true" /> 
+
+	<!-- customize skin settings: maps, gyro, webvr, thumbnails, tooltips, layout, design, ... -->
+	<skin_settings maps="false"
+	               maps_type="google"
+	               maps_bing_api_key=""
+	               maps_google_api_key=""
+	               maps_zoombuttons="false"
+	               gyro="true"
+	               webvr="false"
+	               webvr_gyro_keeplookingdirection="false"
+	               webvr_prev_next_hotspots="true"
+	               littleplanetintro="false"
+	               title="true"
+	               thumbs="true"
+	               thumbs_width="120" thumbs_height="80" thumbs_padding="10" thumbs_crop="0|40|240|160"
+	               thumbs_opened="false"
+	               thumbs_text="true"
+	               thumbs_dragging="true"
+	               thumbs_onhoverscrolling="false"
+	               thumbs_scrollbuttons="false"
+	               thumbs_scrollindicator="false"
+	               thumbs_loop="false"
+	               tooltips_buttons="false"
+	               tooltips_thumbs="false"
+	               tooltips_hotspots="false"
+	               tooltips_mapspots="false"
+	               deeplinking="false"
+	               loadscene_flags="MERGE"
+	               loadscene_blend="OPENBLEND(0.5, 0.0, 0.75, 0.05, linear)"
+	               loadscene_blend_prev="SLIDEBLEND(0.5, 180, 0.75, linear)"
+	               loadscene_blend_next="SLIDEBLEND(0.5,   0, 0.75, linear)"
+	               loadingtext="ein Moment bitte..."
+	               layout_width="100%"
+	               layout_maxwidth="814"
+	               controlbar_width="-24"
+	               controlbar_height="40"
+	               controlbar_offset="20"
+	               controlbar_offset_closed="-40"
+	               controlbar_overlap.no-fractionalscaling="10"
+	               controlbar_overlap.fractionalscaling="0"
+	               design_skin_images="vtourskin.png"
+	               design_bgcolor="0x2D3E50"
+	               design_bgalpha="0.8"
+	               design_bgborder="0"
+	               design_bgroundedge="1"
+	               design_bgshadow="0 4 10 0x000000 0.3"
+	               design_thumbborder_bgborder="3 0xFFFFFF 1.0"
+	               design_thumbborder_padding="2"
+	               design_thumbborder_bgroundedge="0"
+	               design_text_css="color:#FFFFFF; font-family:Arial;"
+		       design_text_shadow="1"
+		       startscene="scene_Pano11"
+	               />
+
+	<events name="hide_thumbs" keep="true" onpreviewcomplete="delayedcall(10, skin_hideskin(true));" />
+	<events name="test_maps" keep="true" onpreviewcomplete="check_map" />
+
+	<textstyle name="tooltip"
+		    font="Verdana"
+		   fontsize="12.0"
+		   background="true"
+		   backgroundcolor="0xFFFFcc"
+		   border="true"
+		   bordercolor="0x333333"
+		   textcolor="0x333333"
+		   alpha="0.8"
+		   origin="cursor"
+		   edge="bottom"
+		   textalign="none"
+		   xoffset="0"
+		   effect="dropshadow(2,45,0x000000,3,1);"
+		   yoffset="-3"
+		   showtime="0.1"
+		   noclip="true"
+		   />
+
+	<!--
+	    For an alternative skin design either change the <skin_settings> values 
+	    from above or optionally include one of the predefined designs from below.
+	-->
+	<!-- <include url="skin/vtourskin_design_flat_light.xml"  /> -->
+	<!-- <include url="skin/vtourskin_design_glass.xml"       /> -->
+	<!-- <include url="skin/vtourskin_design_ultra_light.xml" /> -->
+	<!-- <include url="skin/vtourskin_design_117.xml"         /> -->
+	<!-- <include url="skin/vtourskin_design_117round.xml"    /> -->
+	<!-- <include url="skin/vtourskin_design_black.xml"       /> -->
+
+
+	<!-- startup action - load the first scene -->
+	<action name="startup" autorun="onstart">
+		if(startscene === null OR !scene[get(startscene)], copy(startscene,scene[0].name); );
+		loadscene(get(startscene), null, MERGE);
+		if(startactions !== null, startactions() );
+	</action>
+
+ <!-- hotspot styles -->
+	<style name="arrowspot1" url="skin/vtourskin_hotspot.png" distorted="true" />
+
+	<action name="transition">
+		<!-- move the hotspot to the destination position -->
+		tween(hotspot[%1].alpha, 0.0, 0.25, default);
+		tween(hotspot[%1].rotate, %4, 0.25, default);
+		tween(hotspot[%1].ath,    %2, 0.25, default);
+		tween(hotspot[%1].atv,    %3, 0.25, default, WAIT);
+
+		<!-- look at the hotspot position -->
+		looktohotspot(%1);
+
+		set(plugin[loading].visible,true);
+
+		<!-- load and blend to the new scene -->
+		loadscene(%5, null, MERGE, BLEND(2));
+
+		<!-- save the startup view position of the scene-->
+		copy(startview_hlookat, view.hlookat);
+		copy(startview_vlookat, view.vlookat);
+		copy(startview_fov, view.fov);
+
+		<!-- look at the given position and wait for blending -->
+		lookat(%6, %7, %8);
+		wait(LOAD);
+
+		set(plugin[loading].visible,false);
+
+		wait(BLEND);
+
+		<!-- return to startup position -->
+		oninterrupt(break);
+		lookto(get(startview_hlookat), get(startview_vlookat), get(startview_fov), smooth(60,-60,180));
+
+	</action>
+	
+	<!-- calc the max. flyout size of a hotspot for the current screen size -->
+	<action name="calc_flyout_size">
+		div(screen_sideaspect, stagewidth, stageheight);
+		div(hotspot_sideaspect, hotspot[%1].width, hotspot[%1].height);
+
+		if(screen_sideaspect LT hotspot_sideaspect,
+			div(hotspot[%1].width,stagewidth,stageheight);
+			mul(hotspot[%1].width,80);
+			txtadd(hotspot[%1].width,'%');
+			set(hotspot[%1].height,prop);
+		  ,
+			set(hotspot[%1].width,prop);
+			set(hotspot[%1].height,80%);
+		  );
+	</action>
+
+	<!-- fly in a hotspot = show hotspot fixed at screen -->
+	<action name="flyin">
+		if(hotspot[%1].flying == 0.0, hotspot[%1].resetsize(); calc_flyout_size(%1); );
+		if(hotspot[%1].oldscale === null, copy(hotspot[%1].oldscale, hotspot[%1].scale) );
+		if(hotspot[%1].oldrx === null, copy(hotspot[%1].oldrx, hotspot[%1].rx) );
+		if(hotspot[%1].oldry === null, copy(hotspot[%1].oldry, hotspot[%1].ry) );
+		if(hotspot[%1].oldrz === null, copy(hotspot[%1].oldrz, hotspot[%1].rz) );
+		set(hotspot[%1].enabled,true);
+		set(hotspot[%1].visible,true);
+		tween(hotspot[%1].alpha,  1.0);
+		tween(hotspot[%1].flying, 1.0);
+		tween(hotspot[%1].scale,  1.0);
+		tween(hotspot[%1].rx, 0.0);
+		tween(hotspot[%1].ry, 0.0);
+		tween(hotspot[%1].rz, 0.0);
+	</action>
+
+	<!-- fly the hotspot out/back -->
+	<action name="flyout">
+		set(hotspot[%1].enabled,false);
+		tween(hotspot[%1].alpha,  0.0, 0.5, default, set(hotspot[%1].visible,false); );
+		tween(hotspot[%1].flying, 0.0);
+		tween(hotspot[%1].scale,  get(hotspot[%1].oldscale));
+		tween(hotspot[%1].rx,  get(hotspot[%1].oldrx));
+		tween(hotspot[%1].ry,  get(hotspot[%1].oldry));
+		tween(hotspot[%1].rz,  get(hotspot[%1].oldrz));
+	</action>
+
+
+	<!--
+	<layer name="introimage" keep="true" url="%SWFPATH%/skin/vtourskin_mapspotactive.png" align="center" visible="false" status="closed"  onclick="toggle_pano_info_box();" />
+	-->
+	<action name="toggle_pano_info_box">
+	  	if(layer[%1].status EQ 'closed',
+			set(layer[%1].status,'open');				
+			set(layer[%1].visible,true);	
+			,
+			set(layer[%1].visible,false); 
+			set(layer[%1].status,'closed');
+			);
+	</action>
+
+
+
+	<events onclick="set(autorotate.enabled,false); " />
+
+<!--
+	<layer	name="startrotate"
+		url="skin/start.png"
+		align="rightbottom" 
+		x="100" y="4"
+		onclick="set(autorotate.enabled,true); "
+		keep="true"
+		handcursor="true"
+
+	/>
+-->
+
+<!-- ********************************************* -->
+<!-- Scene 11 - Blick von der B-Side auf den Hafen -->
+<!-- ********************************************* -->
+	<scene name="scene_Pano11" title="Blick von der B-Side auf den Hafen" 
+		thumburl="panos/Pano11.tiles/thumb.jpg" 
+		onstart="setspot(mspot11);"
+		lat="" lng="" heading="">
+
+
+
+
+		<view hlookat="-13.594" vlookat="-5.438" 
+			fovtype="MFOV" fov="80.000" 
+			maxpixelzoom="2.0" 
+			fovmin="70" fovmax="140" 
+			limitview="auto" />
+
+		<preview url="panos/Pano11.tiles/preview.jpg" />
+
+		<autorotate enabled="true" 
+			    waittime="5.0"
+			    speed="-10.0"
+		            />
+
+		<image type="CUBE" multires="true" tilesize="512">
+			<level tiledimagewidth="4864" tiledimageheight="4864">
+				<cube url="panos/Pano11.tiles/%s/l4/%0v/l4_%s_%0v_%0h.jpg" />
+			</level>
+			<level tiledimagewidth="2560" tiledimageheight="2560">
+				<cube url="panos/Pano11.tiles/%s/l3/%0v/l3_%s_%0v_%0h.jpg" />
+			</level>
+			<level tiledimagewidth="1280" tiledimageheight="1280">
+				<cube url="panos/Pano11.tiles/%s/l2/%0v/l2_%s_%0v_%0h.jpg" />
+			</level>
+			<level tiledimagewidth="640" tiledimageheight="640">
+				<cube url="panos/Pano11.tiles/%s/l1/%0v/l1_%s_%0v_%0h.jpg" />
+			</level>
+		</image>
+
+		<hotspot 
+			name="spot1" 
+			style="skin_hotspotstyle" 
+			ath="20.746" 
+			atv="-0.013" 
+			linkedscene="scene_pano10" 
+			alpha="0.6" 
+			onhover="set(alpha, 1.0); showtext(gegenueber der OSMO-Hallen, tooltip);" 
+			onout="set(alpha,0.6);"
+		/>
+
+<!--		<hotspot name="spot12" 
+		style="skin_hotspotstyle"
+		ath="3.127" atv="0.118" 
+		scale="0.50" 
+		onclick="transition(draussen,     -90.0,  0, 0, scene_pano4,    156.634, -0.6440, 0);" /> -->
+
+	       <layer name="introimage11"
+		       type="text"
+		       align="center" 
+			keep="false"
+			html="[lt]center[gt]Mit der Maus kann das Bild bewegt werden.[br]Ueber die Pfeile im Bild und am Rand rechts bzw. links koennen weitere Orte besucht werden.[br]
+			Ganz unten klicken, um weitere Funktionen zu sehen[br][br]
+			Hier der Blick von der B-Side auf die OSMO-Hallen[br]15.04.2018[br]
+			[br] "
+		       css="font-family:Arial; font-size:16px; color:#000000;"
+		       vcenter="false"
+		       padding="2"
+		       wordwrap="true"
+		       bg="true"
+		       bgcolor="0xFFFFFF"
+		       bgalpha="1.0"
+		       bgborder="1"
+		       bgroundedge="1"
+		       bgshadow=""
+		       txtshadow=""
+		       mergedalpha="true"
+		       interactivecontent="true"
+		       onautosized=""
+			visible="false"
+			status="closed"
+			onclick="toggle_pano_info_box(introimage11);"
+	       />
+		<layer name="menu_btn_info" url="info.png" align="rightbottom" x="40" y="4" scale="0.2" onclick="toggle_pano_info_box(introimage11);" />
+
+	</scene>
+
+
+<!-- *************************************************** -->
+<!-- Scene 10 - Blick auf die OSMO Hallen von der B-Side -->
+<!-- *************************************************** -->
+
+	<scene 	name="scene_Pano10" 
+		title="Blick auf die OSMO Hallen von der B-Side" 
+		thumburl="panos/Pano10.tiles/thumb.jpg" 
+		onstart="setspot(mspot10);"
+		lat="" lng="" heading="">
+
+		<layer name="introimage10"
+		       type="text"
+		       align="center" 
+			keep="false"
+			html="[lt]center[gt]Mit der Maus kann das Bild bewegt werden.[br]Ueber die Pfeile im Bild und am Rand rechts bzw. links koennen weitere Orte besucht werden.[br]
+			Ganz unten klicken, um weitere Funktionen zu sehen[br][br]
+			Hier der Blick von der B-Side auf die OSMO-Hallen[br]15.04.2018[br]"
+		       css="font-family:Arial; font-size:16px; color:#000000;"
+		       vcenter="false"
+		       padding="2"
+		       wordwrap="true"
+		       bg="true"
+		       bgcolor="0xFFFFFF"
+		       bgalpha="1.0"
+		       bgborder="1"
+		       bgroundedge="1"
+		       bgshadow=""
+		       txtshadow=""
+		       mergedalpha="true"
+		       interactivecontent="true"
+		       onautosized=""
+			visible="false"
+			status="closed"
+			onclick="toggle_pano_info_box(introimage10);"
+	       />
+		<layer name="menu_btn_info" url="info.png" align="rightbottom" x="40" y="4" scale="0.2" onclick="toggle_pano_info_box(introimage10);" />
+
+		<view hlookat="133.854" vlookat="-2.283" fovtype="MFOV" fov="114.969" maxpixelzoom="2.0" fovmin="70" fovmax="140" limitview="auto" />
+
+		<preview url="panos/Pano10.tiles/preview.jpg" />
+		<autorotate enabled="true" 
+			    waittime="5.0"
+			    speed="-10.0"
+		            />
+
+		<image type="CUBE" multires="true" tilesize="512">
+			<level tiledimagewidth="4864" tiledimageheight="4864">
+				<cube url="panos/Pano10.tiles/%s/l4/%0v/l4_%s_%0v_%0h.jpg" />
+			</level>
+			<level tiledimagewidth="2560" tiledimageheight="2560">
+				<cube url="panos/Pano10.tiles/%s/l3/%0v/l3_%s_%0v_%0h.jpg" />
+			</level>
+			<level tiledimagewidth="1280" tiledimageheight="1280">
+				<cube url="panos/Pano10.tiles/%s/l2/%0v/l2_%s_%0v_%0h.jpg" />
+			</level>
+			<level tiledimagewidth="640" tiledimageheight="640">
+				<cube url="panos/Pano10.tiles/%s/l1/%0v/l1_%s_%0v_%0h.jpg" />
+			</level>
+		</image>
+		<hotspot name="spot1" style="skin_hotspotstyle" ath="167.275" atv="-1.590" linkedscene="scene_pano4" alpha="0.6" onhover="set(alpha, 1.0); showtext(auf die andere Seite, tooltip);" onout="set(alpha,0.6);" />
+		<hotspot name="spot2" style="skin_hotspotstyle" ath="28.509" atv="-1.101" linkedscene="scene_pano11" alpha="0.6" onhover="set(alpha, 1.0); showtext(zur B-Side, tooltip);" onout="set(alpha,0.6);" />
+
+	</scene>	
+
+<!-- *********************************** -->
+<!-- Scene 4 - Blick auf das Hafenbecken -->
+<!-- *********************************** -->
+	<scene 	name="scene_Pano4" 
+		title="Blick auf das Hafenbecken" 
+		thumburl="panos/Pano4.tiles/thumb.jpg" 
+		onstart="setspot(mspot4);"
+		lat="" lng="" heading="">
+
+		<view hlookat="-206.097" vlookat="0.240" fovtype="MFOV" fov="120.000" maxpixelzoom="2.0" fovmin="70" fovmax="140" limitview="auto" />
+
+		<preview url="panos/Pano4.tiles/preview.jpg" />
+		<autorotate enabled="true" 
+			    waittime="5.0"
+			    speed="10.0"
+		            />
+
+		<image type="CUBE" multires="true" tilesize="512">
+			<level tiledimagewidth="4864" tiledimageheight="4864">
+				<cube url="panos/Pano4.tiles/%s/l4/%0v/l4_%s_%0v_%0h.jpg" />
+			</level>
+			<level tiledimagewidth="2560" tiledimageheight="2560">
+				<cube url="panos/Pano4.tiles/%s/l3/%0v/l3_%s_%0v_%0h.jpg" />
+			</level>
+			<level tiledimagewidth="1280" tiledimageheight="1280">
+				<cube url="panos/Pano4.tiles/%s/l2/%0v/l2_%s_%0v_%0h.jpg" />
+			</level>
+			<level tiledimagewidth="640" tiledimageheight="640">
+				<cube url="panos/Pano4.tiles/%s/l1/%0v/l1_%s_%0v_%0h.jpg" />
+			</level>
+		</image>
+		<hotspot name="spot1" style="skin_hotspotstyle" ath="-81.050" atv="-0.521" linkedscene="scene_pano5" alpha="0.6" onhover="set(alpha, 1.0); showtext(zum Eingang der OSMO-Hallen, tooltip);" onout="set(alpha,0.6);" />
+		<hotspot name="spot2" style="skin_hotspotstyle" ath="131.311" atv="-0.744" linkedscene="scene_pano10" alpha="0.6" onhover="set(alpha, 1.0); showtext(auf die andere Seite, tooltip);" onout="set(alpha,0.6);" />
+
+	</scene>
+
+<!-- *********************************************************************** -->
+<!-- Scene 5 - Ehemalige Einfahrt in die OSMO Hallen von der Schillerstrasse -->
+<!-- *********************************************************************** -->
+	<scene 	name="scene_Pano5" 
+		title="Ehemalige Einfahrt in die OSMO Hallen von der Schillerstrasse" 
+		onstart="setspot(mspot5);"
+		thumburl="panos/Pano5.tiles/thumb.jpg" 
+		lat="" lng="" heading="">
+
+		<view hlookat="1.305" vlookat="-9.178" fovtype="MFOV" fov="129.359" maxpixelzoom="2.0" fovmin="70" fovmax="140" limitview="auto" />
+
+		<preview url="panos/Pano5.tiles/preview.jpg" />
+		<autorotate enabled="true" 
+			    waittime="5.0"
+			    speed="-10.0"
+		            />
+
+		<image type="CUBE" multires="true" tilesize="512">
+			<level tiledimagewidth="4864" tiledimageheight="4864">
+				<cube url="panos/Pano5.tiles/%s/l4/%0v/l4_%s_%0v_%0h.jpg" />
+			</level>
+			<level tiledimagewidth="2560" tiledimageheight="2560">
+				<cube url="panos/Pano5.tiles/%s/l3/%0v/l3_%s_%0v_%0h.jpg" />
+			</level>
+			<level tiledimagewidth="1280" tiledimageheight="1280">
+				<cube url="panos/Pano5.tiles/%s/l2/%0v/l2_%s_%0v_%0h.jpg" />
+			</level>
+			<level tiledimagewidth="640" tiledimageheight="640">
+				<cube url="panos/Pano5.tiles/%s/l1/%0v/l1_%s_%0v_%0h.jpg" />
+			</level>
+		</image>
+		<hotspot name="spot1" style="skin_hotspotstyle" ath="-0.071" atv="2.523" linkedscene="scene_pano2" alpha="0.6" onhover="set(alpha, 1.0); showtext(in die Halle, tooltip);" onout="set(alpha,0.6);" />
+		<hotspot name="spot2" style="skin_hotspotstyle" ath="-81.987" atv="0.661" linkedscene="scene_pano4" alpha="0.6" onhover="set(alpha, 1.0); showtext(zum Hafenbecken, tooltip);" onout="set(alpha,0.6);" />
+	</scene>
+
+
+<!-- *********************************************************************** -->
+<!-- Scene 2 - 4. Halle                                                      -->
+<!-- *********************************************************************** -->
+
+	<scene 	name="scene_Pano2" 
+		title="4. Halle" 
+		onstart="setspot(mspot2);"
+		thumburl="panos/Pano2.tiles/thumb.jpg" 
+		lat="" lng="" heading="">
+
+		<view hlookat="-23.424" vlookat="0.209" fovtype="MFOV" fov="120.000" maxpixelzoom="2.0" fovmin="70" fovmax="140" limitview="auto" />
+
+		<preview url="panos/Pano2.tiles/preview.jpg" />
+		<autorotate enabled="true" 
+			    waittime="5.0"
+			    speed="10.0"
+		            />
+
+		<image type="CUBE" multires="true" tilesize="512">
+			<level tiledimagewidth="6144" tiledimageheight="6144">
+				<cube url="panos/Pano2.tiles/%s/l4/%0v/l4_%s_%0v_%0h.jpg" />
+			</level>
+			<level tiledimagewidth="3072" tiledimageheight="3072">
+				<cube url="panos/Pano2.tiles/%s/l3/%0v/l3_%s_%0v_%0h.jpg" />
+			</level>
+			<level tiledimagewidth="1536" tiledimageheight="1536">
+				<cube url="panos/Pano2.tiles/%s/l2/%0v/l2_%s_%0v_%0h.jpg" />
+			</level>
+			<level tiledimagewidth="768" tiledimageheight="768">
+				<cube url="panos/Pano2.tiles/%s/l1/%0v/l1_%s_%0v_%0h.jpg" />
+			</level>
+		</image>
+		<hotspot name="spot1" style="skin_hotspotstyle" ath="86.565" atv="-2.540" linkedscene="scene_pano9" alpha="0.6" onhover="set(alpha, 1.0); showtext(in die naechste Halle, tooltip);" onout="set(alpha,0.6);" />
+		<hotspot name="spot2" style="skin_hotspotstyle" ath="-172.209" atv="-1.716" linkedscene="scene_pano5" alpha="0.6" onhover="set(alpha, 1.0); showtext(zum Ausgang Schillerstrasse, tooltip);" onout="set(alpha,0.6);" />
+	</scene>
+
+<!-- *********************************************************************** -->
+<!-- Scene 9 - die Haupthalle                                                -->
+<!-- *********************************************************************** -->
+	<scene 	name="scene_Pano9" 
+		title="die Haupthalle" 
+		onstart="setspot(mspot9);"
+		thumburl="panos/Pano9.tiles/thumb.jpg" 
+		lat="" lng="" heading="">
+
+		<view hlookat="185.694" vlookat="-7.629" fovtype="MFOV" fov="109.670" maxpixelzoom="2.0" fovmin="70" fovmax="140" limitview="auto" />
+
+		<preview url="panos/Pano9.tiles/preview.jpg" />
+
+		<image type="CUBE" multires="true" tilesize="512">
+			<level tiledimagewidth="5120" tiledimageheight="5120">
+				<cube url="panos/Pano9.tiles/%s/l4/%0v/l4_%s_%0v_%0h.jpg" />
+			</level>
+			<level tiledimagewidth="2560" tiledimageheight="2560">
+				<cube url="panos/Pano9.tiles/%s/l3/%0v/l3_%s_%0v_%0h.jpg" />
+			</level>
+			<level tiledimagewidth="1280" tiledimageheight="1280">
+				<cube url="panos/Pano9.tiles/%s/l2/%0v/l2_%s_%0v_%0h.jpg" />
+			</level>
+			<level tiledimagewidth="640" tiledimageheight="640">
+				<cube url="panos/Pano9.tiles/%s/l1/%0v/l1_%s_%0v_%0h.jpg" />
+			</level>
+		</image>
+		<hotspot name="spot1" style="skin_hotspotstyle" ath="-66.904" atv="-0.325" linkedscene="scene_pano1" alpha="0.6" onhover="set(alpha, 1.0); showtext(in die Halle Hafenweg 31, tooltip);" onout="set(alpha,0.6);"  />
+		<hotspot name="spot2" style="skin_hotspotstyle" ath="70.971" atv="-3.527" linkedscene="scene_pano2" alpha="0.6" onhover="set(alpha, 1.0); showtext(in die naechste Halle, tooltip);" onout="set(alpha,0.6);" />
+	</scene>
+
+
+<!-- *********************************************************************** -->
+<!-- Scene 1 - Hafenweg 31                                                   -->
+<!-- *********************************************************************** -->
+	<scene 	name="scene_Pano1" 
+		title="Hafenweg 31" 
+		onstart="setspot(mspot1);"
+		thumburl="panos/Pano1.tiles/thumb.jpg" 
+		lat="" lng="" heading="">
+
+		<view hlookat="1.409" vlookat="-4.619" fovtype="MFOV" fov="120.000" maxpixelzoom="2.0" fovmin="70" fovmax="140" limitview="range" vlookatmin="-89.551" vlookatmax="89.551" />
+
+		<preview url="panos/Pano1.tiles/preview.jpg" />
+		<autorotate enabled="true" 
+			    waittime="5.0"
+			    speed="10.0"
+		            />
+
+		<image type="CUBE" multires="true" tilesize="512">
+			<level tiledimagewidth="5888" tiledimageheight="5888">
+				<cube url="panos/Pano1.tiles/%s/l4/%0v/l4_%s_%0v_%0h.jpg" />
+			</level>
+			<level tiledimagewidth="2816" tiledimageheight="2816">
+				<cube url="panos/Pano1.tiles/%s/l3/%0v/l3_%s_%0v_%0h.jpg" />
+			</level>
+			<level tiledimagewidth="1536" tiledimageheight="1536">
+				<cube url="panos/Pano1.tiles/%s/l2/%0v/l2_%s_%0v_%0h.jpg" />
+			</level>
+			<level tiledimagewidth="768" tiledimageheight="768">
+				<cube url="panos/Pano1.tiles/%s/l1/%0v/l1_%s_%0v_%0h.jpg" />
+			</level>
+		</image>
+		<hotspot name="spot1" style="skin_hotspotstyle" ath="102.267" atv="1.635" linkedscene="scene_pano8" alpha="0.6" onhover="set(alpha, 1.0); showtext(raus aus der Halle zum Hafenweg, tooltip);" onout="set(alpha,0.6);" />
+		<hotspot name="spot2" style="skin_hotspotstyle" ath="-94.770" atv="-2.833" linkedscene="scene_pano9" alpha="0.6" onhover="set(alpha, 1.0); showtext(in die naechste Halle, tooltip);" onout="set(alpha,0.6);" />
+	</scene>
+
+
+
+<!-- *********************************************************************** -->
+<!-- Scene 8 - Hafenweg mit dem ehem. Heaven und coconut beach               -->
+<!-- *********************************************************************** -->
+	<scene 	name="scene_Pano8" 
+		title="Hafenweg mit dem ehem. Heaven und coconut beach" 
+		onstart="setspot(mspot8);"
+		thumburl="panos/Pano8.tiles/thumb.jpg" 
+		lat="" lng="" heading="">
+
+		<view hlookat="0.0" vlookat="0.0" fovtype="MFOV" fov="120" maxpixelzoom="2.0" fovmin="70" fovmax="140" limitview="auto" />
+
+		<preview url="panos/Pano8.tiles/preview.jpg" />
+		<autorotate enabled="true" 
+			    waittime="5.0"
+			    speed="10.0"
+		            />
+
+		<image type="CUBE" multires="true" tilesize="512">
+			<level tiledimagewidth="4864" tiledimageheight="4864">
+				<cube url="panos/Pano8.tiles/%s/l4/%0v/l4_%s_%0v_%0h.jpg" />
+			</level>
+			<level tiledimagewidth="2560" tiledimageheight="2560">
+				<cube url="panos/Pano8.tiles/%s/l3/%0v/l3_%s_%0v_%0h.jpg" />
+			</level>
+			<level tiledimagewidth="1280" tiledimageheight="1280">
+				<cube url="panos/Pano8.tiles/%s/l2/%0v/l2_%s_%0v_%0h.jpg" />
+			</level>
+			<level tiledimagewidth="640" tiledimageheight="640">
+				<cube url="panos/Pano8.tiles/%s/l1/%0v/l1_%s_%0v_%0h.jpg" />
+			</level>
+		</image>
+		<hotspot name="spot1" style="skin_hotspotstyle" ath="-19.869" atv="0.787" linkedscene="scene_pano1" alpha="0.6" onhover="set(alpha, 1.0); showtext(in die OSMO-Hallen, tooltip);" onout="set(alpha,0.6);" />
+	</scene>
+
+
+
+
+
+</krpano>

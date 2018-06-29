@@ -1,0 +1,126 @@
+﻿<krpano>
+
+<action name="changepano">
+	loadscene(%1, null, MERGE, BLEND(1));
+	if (stagewidth LT 1000, close_map);
+	trace (stagewidth);
+</action>
+
+<action name="setspot">
+	plugin[mapmaster].activatespot(%1);
+	plugin[mapmaster].pantospot(%1);
+</action>
+
+<action name="close_map">
+	tween(plugin[maprahmen].x,-377,0.5);
+	tween(plugin[maprahmen].y,-277,0.5);
+	tween(plugin[map_on].x,0,0.5);
+	tween(plugin[map_on].y,0,0.5);
+</action>
+
+<action name="check_map">
+	if (area.pixelwidth LT 1000,
+	close_map()
+	);
+</action>
+
+<plugin name="maprahmen"
+	url="rahmen.png"
+	align="leftbottom" height="277" width="377" 
+	keep="true"
+	children="true"
+	zorder="4"
+	/>
+
+<plugin name="map_close"
+	keep="true"
+	url="down_button.png"
+	parent="maprahmen"
+	align="righttop"
+	x="3"
+	y="5"
+	zorder="100"
+	onclick="tween(plugin[maprahmen].x,-377,0.5);
+		tween(plugin[maprahmen].y,-277,0.5);
+		tween(plugin[map_on].x,0,0.5);
+		tween(plugin[map_on].y,0,0.5);"
+	onhover="showtext(Karte schliessen, tooltip);"
+	/>
+
+<plugin name="map_on"
+	keep="true"
+	url="open_button.png"
+	align="leftbottom"
+	alpha="0.5"
+	x="-160"
+	y="-60"
+	zorder="100"
+	onclick="tween(plugin[maprahmen].x,0,0.5);
+		tween(plugin[maprahmen].y,0,0.5);
+		tween(x,-160);tween(y,-60);"
+	onover="showtext(Karte öffnen, tooltip); set(alpha,1.0);"
+	onout="set(alpha,0.5);"
+	/>
+
+<plugin name="mapmaster"  
+	parent="maprahmen"
+	y="0" x="0" 
+	align="leftbottom" 
+	height="240" width="330"
+	zoom="16" 
+	zorder="99"
+	lat="51.951047" lng="7.646135" 
+	maptype="SATELLITE" 
+	url.flash="%SWFPATH%/plugins/bingmaps.swf" 
+	url.html5="%SWFPATH%/plugins/googlemaps.js" 
+	keep="true">
+
+	<radar 
+		headingoffset="0" 
+		dragable="true" 
+		linewidth="0.5" linealpha="0.5" linecolor="0x00FF00" fillalpha="1.0" fillcolor="0xFFFFFF" 
+		alpha="0.33" size="300" visible="true"/>
+
+	<spot name="mspot11"
+		lat="51.951029" lng="7.644498" 
+		heading="80"
+		onclick="changepano(scene_Pano11, mspot11);"
+		active="true"
+		/>
+	<spot name="mspot10"
+		lat="51.950769" lng="7.646718" 
+		heading="253"
+		onclick="changepano(scene_Pano10, mspot10);"
+		/>
+	<spot name="mspot4"
+		lat="51.951178" lng="7.648100" 
+		heading="100"
+		onclick="changepano(scene_Pano4, mspot4);"
+		/>
+	<spot name="mspot5"
+		lat="51.951578" lng="7.648188"  
+		heading="285"
+		onclick="changepano(scene_Pano5, mspot5);"
+		/>
+	<spot name="mspot2"
+		lat="51.951562" lng="7.647571"   
+		heading="220"
+		onclick="changepano(scene_Pano2, mspot2);"
+		/>
+	<spot name="mspot9"
+		lat="51.951767" lng="7.647244"    
+		heading="10"
+		onclick="changepano(scene_Pano9, mspot9);"
+		/>
+	<spot name="mspot1"
+		lat="51.951791" lng="7.646780"    
+		heading="190"
+		onclick="changepano(scene_Pano1, mspot1);"
+		/>
+	<spot name="mspot8"
+		lat="51.951984" lng="7.646000"    
+		heading="120"
+		onclick="changepano(scene_Pano8, mspot8);"
+		/>
+</plugin>
+</krpano>
